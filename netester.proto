@@ -1,0 +1,21 @@
+syntax = "proto3";
+package netester;
+
+
+message HandshakeHello {
+}
+
+message HandshakeAck {
+}
+
+message SyncTimeReport {
+	uint32			seq			= 1;
+	uint64			ts			= 2;
+	uint64			diff		= 3;
+}
+
+message SpeedTestReq {
+	uint32			block		= 1;
+}
+
+

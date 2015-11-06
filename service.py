@@ -189,3 +189,10 @@ class Listener(Actor):
                 actor.stop()
                 self.actors.remove(actor)
                 break
+
+def createUdpService(address,svcmeta):
+    sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+    sock.setblocking(False)
+    sock.bind(address)
+
+    return ServiceActor(svcmeta(sock))

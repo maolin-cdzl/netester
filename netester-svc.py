@@ -8,6 +8,7 @@ import threading
 import socket
 import select
 import json
+from daemon import runner
 from service import Listener,Service,createUdpService
 
 g_current_path = os.path.abspath(os.path.dirname(__file__))
@@ -79,6 +80,34 @@ class DownloadSpeedService(Service):
         except IOError:
             self.running = False
 
+class UploadSpeedService(Service):
+    def __init__(self,sock):
+        self.running = True
+        super(self.__class__,self).__init__(sock)
+
+    def on_start(self):
+        print('UploadSpeedService service start')
+        super(self.__class__,self).on_start()
+
+    def on_stop(self):
+        print('DownloadSpeedService service stop')
+        super(self.__class__,self).on_stop()
+
+    def is_running(self):
+        return self.running
+
+    def select(self):
+        return (True,False,0)
+
+    def on_readable(self):
+        try:
+            d = self.sock.recv(1024)
+            if len(d) == 0:
+                self.running = False
+        except IOError:
+            self.running = False
+
+
 class UdpEchoService(Service):
     def __init__(self,sock):
         super(UdpEchoService,self).__init__(sock)
@@ -90,6 +119,25 @@ class UdpEchoService(Service):
         data,addr = self.sock.recvfrom(2048)
         if len(data) > 0 :
             self.sock.sendto(data,addr)
+
+class TcpEchoService(Service):
+    def __init__(self,sock):
+        self.running = True
+        super(self.__class__,self).__init__(sock)
+
+    def select(self):
+        return (True,False,0)
+
+    def is_running(self):
+        return self.running
+
+    def on_readable(self):
+        data = self.sock.recv(2048)
+        if len(data) > 0 :
+            self.sock.send(data)
+        else:
+            self.running = False
+
 
 class RtpDownstreamService(Service):
     class RtpDownstreamClient:
@@ -168,35 +216,39 @@ class RtpDownstreamService(Service):
             if self.clients[k].alive + 30.0 < now:
                 del(self.clients[k])
 
-def main():
-    global shutdown_event
-    shutdown_event = threading.Event()
-    signal.signal(signal.SIGINT, ctrl_c)
+class App:
+    def __init__(self):
+        global g_current_path
+        self.stdin_path = '/dev/null'
+        self.stdout_path = '/dev/null'
+        self.stderr_path = '/dev/null'
+        self.pidfile_path = '/tmp/netester.pid'
+        self.pidfile_timeout = 5
+        self.svcs = []
 
-    svcs = []
-    try:
-        dssvc = Listener(('0.0.0.0',59000),DownloadSpeedService)
-        dssvc.start()
-        svcs.append(dssvc)
+    def _svc_start(self,svc):
+        svc.start()
+        self.svcs.append(svc)
 
-        echosvc = createUdpService(('0.0.0.0',59001),UdpEchoService)
-        echosvc.start()
-        svcs.append(echosvc)
+    def run(self):
+        try:
+            ip = '0.0.0.0'
+            self._svc_start(Listener((ip,59000),DownloadSpeedService))
+            self._svc_start(Listener((ip,59001),UploadSpeedService))
+            self._svc_start(createUdpService((ip,59002),RtpDownstreamService))
+            self._svc_start(createUdpService((ip,59003),UdpEchoService))
+            self._svc_start(Listener((ip,59004),TcpEchoService))
 
-        rdssvc = createUdpService(('0.0.0.0',59002),RtpDownstreamService)
-        rdssvc.start()
-        svcs.append(rdssvc)
+            while True:
+                time.sleep(10)
 
-        while not shutdown_event.isSet():
-            time.sleep(1)
+            print('Service shutdown...')
+        finally:
+            for svc in self.svcs:
+                svc.stop()
+            self.svcs = []
 
-        print('Service shutdown...')
-    except KeyboardInterrupt:
-        print('\nService Shutdown...\n')
-    finally:
-        for svc in svcs:
-            svc.stop()
-        svcs = []
-
-if __name__ == '__main__':
-    main()
+app = App()
+#daemon_runner = runner.DaemonRunner(app)
+#daemon_runner.do_action()
+app.run()

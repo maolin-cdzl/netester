@@ -175,15 +175,15 @@ def main():
 
     svcs = []
     try:
-        dssvc = Listener(('127.0.0.1',59000),DownloadSpeedService)
+        dssvc = Listener(('0.0.0.0',59000),DownloadSpeedService)
         dssvc.start()
         svcs.append(dssvc)
 
-        echosvc = createUdpService(('127.0.0.1',59001),UdpEchoService)
+        echosvc = createUdpService(('0.0.0.0',59001),UdpEchoService)
         echosvc.start()
         svcs.append(echosvc)
 
-        rdssvc = createUdpService(('127.0.0.1',59002),RtpDownstreamService)
+        rdssvc = createUdpService(('0.0.0.0',59002),RtpDownstreamService)
         rdssvc.start()
         svcs.append(rdssvc)
 

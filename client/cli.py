@@ -26,7 +26,7 @@ def get_timestamp():
 
 
 def main():
-    conf = json.load(file('%s/netester-cli.json' % current_path))
+    conf = json.load(file('%s/conf.json' % current_path))
     server = conf['server']
     #server = '127.0.0.1'
 

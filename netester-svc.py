@@ -262,6 +262,6 @@ class App:
             self.svcs = []
 
 app = App()
-#daemon_runner = runner.DaemonRunner(app)
-#daemon_runner.do_action()
-app.run()
+daemon_runner = runner.DaemonRunner(app)
+daemon_runner.do_action()
+#app.run()

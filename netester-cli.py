@@ -28,7 +28,7 @@ def get_timestamp():
 def main():
     conf = json.load(file('%s/netester-cli.json' % current_path))
     server = conf['server']
-    server = '127.0.0.1'
+    #server = '127.0.0.1'
 
     tester = Mtu(server,conf['MTU'])
     tester.run()

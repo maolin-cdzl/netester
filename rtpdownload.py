@@ -9,7 +9,7 @@ import json
 
 from rtp import RtpStatus
 
-class RtpDownloadStream:
+class RtpDownStream:
     def __init__(self,server,conf):
         self.address = (server,conf['port'])
         self.conf = conf

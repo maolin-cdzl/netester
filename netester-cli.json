@@ -13,10 +13,24 @@
 		"block" : [64,128,256,512,1024,1472],
 		"threads" : [1,2,4,5]
 	},
-	"RtpDownload" : {
+	"RtpDownStream" : {
 		"port" : 59002,
 		"period" : 10,
 		"rtp_head" : 12,
+		"frame_per_packet" : [1,2,4,5,8,10,20],
+		"frame_bytes" : [10,22]
+	},
+	"UdpDelay" : {
+		"port" : 59003,
+		"period" : 10,
+		"overhead" : 12,
+		"frame_per_packet" : [1,2,4,5,8,10,20],
+		"frame_bytes" : [10,22]
+	},
+	"TcpDelay" : {
+		"port" : 59004,
+		"period" : 10,
+		"overhead" : 12,
 		"frame_per_packet" : [1,2,4,5,8,10,20],
 		"frame_bytes" : [10,22]
 	}

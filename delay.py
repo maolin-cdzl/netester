@@ -14,11 +14,16 @@ class UdpDelay:
 
     def run(self):
         reports = []
-        for packet_bytes in self.conf['packet_bytes']:
-            delay,max_delay,min_delay,lost = self.runonce(packet_bytes)
-            report = ('[PacketBytes:%d] Avg=%f Max=%f Min=%f Lost=%d' % (packet_bytes,delay,max_delay,min_delay,lost))
-            print(report)
-            reports.append(report)
+        overhead = self.conf['overhead']
+        print('<---UdpDelay---')
+        for frame_per_packet in self.conf['frame_per_packet']:
+            for frame_bytes in self.conf['frame_bytes']:
+                packet_bytes = (frame_per_packet * frame_bytes) + overhead
+                delay,max_delay,min_delay,lost = self.runonce(packet_bytes)
+                report = ('[PacketBytes:%d] Avg=%f Max=%f Min=%f Lost=%d' % (packet_bytes,delay,max_delay,min_delay,lost))
+                print(report)
+                reports.append(report)
+        print('---UdpDelay--->')
 
         return reports
 
@@ -71,11 +76,16 @@ class TcpDelay:
 
     def run(self):
         reports = []
-        for packet_bytes in self.conf['packet_bytes']:
-            delay,max_delay,min_delay = self.runonce(packet_bytes)
-            report = ('[PacketBytes:%d] Avg=%f Max=%f Min=%f' % (packet_bytes,delay,max_delay,min_delay))
-            print(report)
-            reports.append(report)
+        overhead = self.conf['overhead']
+        print('<---TcpDelay---')
+        for frame_per_packet in self.conf['frame_per_packet']:
+            for frame_bytes in self.conf['frame_bytes']:
+                packet_bytes = (frame_per_packet * frame_bytes) + overhead
+                delay,max_delay,min_delay = self.runonce(packet_bytes)
+                report = ('[PacketBytes:%d] Avg=%f Max=%f Min=%f' % (packet_bytes,delay,max_delay,min_delay))
+                print(report)
+                reports.append(report)
+        print('---TcpDelay--->')
         return reports
 
     def runonce(self,size):

@@ -10,7 +10,8 @@ import socket
 import json
 
 from downloadspeed import DownloadSpeedCli
-from rtpdownload import RtpDownloadStream
+from rtpdownload import RtpDownStream
+from delay import UdpDelay,TcpDelay
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 
@@ -30,7 +31,13 @@ def main():
     speed,block,threads = app.run()
     print('Speed = %f, block = %d, threads = %d' % (speed,block,threads))
 
-    app = RtpDownloadStream(server,conf['RtpDownload'])
+    app = RtpDownStream(server,conf['RtpDownStream'])
+    app.run()
+
+    app = UdpDelay(server,conf['UdpDelay'])
+    app.run()
+
+    app = TcpDelay(server,conf['TcpDelay'])
     app.run()
 
 if __name__ == '__main__':

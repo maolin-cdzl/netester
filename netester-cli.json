@@ -25,13 +25,20 @@
 		"period" : 10,
 		"overhead" : 12,
 		"frame_per_packet" : [1,2,4,5,8,10,20],
-		"frame_bytes" : [10,22]
+		"frame_bytes" : [10,22],
+		"bandwidth" : [4,5,6,8,10,20]
 	},
 	"TcpDelay" : {
 		"port" : 59004,
 		"period" : 10,
 		"overhead" : 12,
 		"frame_per_packet" : [1,2,4,5,8,10,20],
-		"frame_bytes" : [10,22]
+		"frame_bytes" : [10,22],
+		"bandwidth" : [4,5,6,8,10,20]
+	},
+	"MTU" : {
+		"port" : 59003,
+		"min" : 400,
+		"max" : 5000
 	}
 }

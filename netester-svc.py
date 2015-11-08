@@ -116,7 +116,7 @@ class UdpEchoService(Service):
         return (True,False,0)
 
     def on_readable(self):
-        data,addr = self.sock.recvfrom(2048)
+        data,addr = self.sock.recvfrom(8192)
         if len(data) > 0 :
             self.sock.sendto(data,addr)
 

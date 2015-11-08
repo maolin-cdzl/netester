@@ -7,6 +7,38 @@ import time
 import socket
 import json
 
+class UdpDelayReport:
+    def __init__(self,bandwidth,packetbytes):
+        self.bandwidth = bandwidth
+        self.packetbytes = packetbytes
+        self.avg_delay = 0.0
+        self.max_delay = 0.0
+        self.min_delay = 0.0
+        self.received = 0
+        self.lost = 0
+
+    def record(self,delay):
+        if delay > self.max_delay:
+            self.max_delay = delay
+        if self.min_delay == 0 or delay < self.min_delay:
+            self.min_delay = delay
+        self.avg_delay = ((self.avg_delay * self.received) + delay) / (self.received + 1)
+        self.received += 1
+
+    def addLost(self):
+        self.lost += 1
+
+    def report(self):
+        return { 
+                'bandwidth' : self.bandwidth, 
+                'packet' : self.packetbytes, 
+                'received' : self.received,
+                'lost' : self.lost,
+                'avg_delay' : round(self.avg_delay,4),
+                'max_delay' : round(self.max_delay,4),
+                'min_delay' : round(self.min_delay,4)
+                }
+
 class UdpDelay:
     def __init__(self,server,conf):
         self.address = (server,conf['port'])
@@ -18,56 +50,78 @@ class UdpDelay:
         print('<---UdpDelay---')
         for frame_per_packet in self.conf['frame_per_packet']:
             for frame_bytes in self.conf['frame_bytes']:
-                packet_bytes = (frame_per_packet * frame_bytes) + overhead
-                delay,max_delay,min_delay,lost = self.runonce(packet_bytes)
-                report = ('[PacketBytes:%d] Avg=%f Max=%f Min=%f Lost=%d' % (packet_bytes,delay,max_delay,min_delay,lost))
-                print(report)
-                reports.append(report)
+                for bandwidth in self.conf['bandwidth']:
+                    packet_bytes = (frame_per_packet * frame_bytes) + overhead
+                    report = self.runonce(bandwidth,packet_bytes)
+                    print( json.dumps(report.report()) )
+                    reports.append(report)
         print('---UdpDelay--->')
 
         return reports
 
-    def runonce(self,size):
+    def runonce(self,bandwidth,size):
+        report = UdpDelayReport(bandwidth,size)
         last_send = 0.0
-        max_delay = 0.0
-        min_delay = 10.0
-        total_time = 0.0
-        received = 0
-        lost = 0
         sock = None
+        packet = bytearray(size)
+        interval = 1.0 / ((float(bandwidth) * 1000 / 8) / size)
 
         try:
             sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
             sock.settimeout(5.0)
             now = time.time()
             deadline = now + self.conf['period']
-            packet = bytearray(size)
 
             while now < deadline:
                 try:
-                    sock.sendto(packet,self.address)
                     last_send = time.time()
+                    sock.sendto(packet,self.address)
                     rep,addr = sock.recvfrom(2048)
 
                     now = time.time()
                     delay = now - last_send
-                    received += 1
-                    total_time += delay
-                    if delay > max_delay:
-                        max_delay = delay
-                    if delay < min_delay:
-                        min_delay = delay
+                    report.record(delay)
+
+                    d = interval - (now - last_send)
+                    if d > 0:
+                        time.sleep(d)
+                        now = time.time()
                 except socket.timeout:
-                    lost += 1
+                    report.addLost()
+                    now = time.time()
                     pass
         finally:
             if sock is not None:
                 sock.close()
 
-        delay = 0
-        if received > 0:
-            delay = total_time / received
-        return (delay,max_delay,min_delay,lost)
+        return report
+
+class TcpDelayReport:
+    def __init__(self,bandwidth,packetbytes):
+        self.bandwidth = bandwidth
+        self.packetbytes = packetbytes
+        self.avg_delay = 0.0
+        self.max_delay = 0.0
+        self.min_delay = 0.0
+        self.received = 0
+
+    def record(self,delay):
+        if delay > self.max_delay:
+            self.max_delay = delay
+        if self.min_delay == 0 or delay < self.min_delay:
+            self.min_delay = delay
+        self.avg_delay = ((self.avg_delay * self.received) + delay) / (self.received + 1)
+        self.received += 1
+
+    def report(self):
+        return { 
+                'bandwidth' : self.bandwidth, 
+                'packet' : self.packetbytes, 
+                'received' : self.received,
+                'avg_delay' : round(self.avg_delay,4),
+                'max_delay' : round(self.max_delay,4),
+                'min_delay' : round(self.min_delay,4)
+                }
 
 class TcpDelay:
     def __init__(self,server,conf):
@@ -80,21 +134,20 @@ class TcpDelay:
         print('<---TcpDelay---')
         for frame_per_packet in self.conf['frame_per_packet']:
             for frame_bytes in self.conf['frame_bytes']:
-                packet_bytes = (frame_per_packet * frame_bytes) + overhead
-                delay,max_delay,min_delay = self.runonce(packet_bytes)
-                report = ('[PacketBytes:%d] Avg=%f Max=%f Min=%f' % (packet_bytes,delay,max_delay,min_delay))
-                print(report)
-                reports.append(report)
+                for bandwidth in self.conf['bandwidth']:
+                    packet_bytes = (frame_per_packet * frame_bytes) + overhead
+                    report = self.runonce(bandwidth,packet_bytes)
+                    print( json.dumps(report.report()) )
+                    reports.append(report)
         print('---TcpDelay--->')
         return reports
 
-    def runonce(self,size):
+    def runonce(self,bandwidth,size):
+        report = TcpDelayReport(bandwidth,size)
         last_send = 0.0
-        max_delay = 0.0
-        min_delay = 10.0
-        total_time = 0.0
-        received = 0
         sock = None
+        packet = bytearray(size)
+        interval = 1.0 / ((float(bandwidth) * 1000 / 8) / size)
 
         try:
             sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -103,7 +156,6 @@ class TcpDelay:
 
             now = time.time()
             deadline = now + self.conf['period']
-            packet = bytearray(size)
 
             while now < deadline:
                 sock.sendall(packet)
@@ -113,17 +165,13 @@ class TcpDelay:
 
                 now = time.time()
                 delay = now - last_send
-                received += 1
-                total_time += delay
-                if delay > max_delay:
-                    max_delay = delay
-                if delay < min_delay:
-                    min_delay = delay
+                report.record(delay)
+
+                d = interval - (now - last_send)
+                if d > 0:
+                    time.sleep(d)
+                    now = time.time()
         finally:
             if sock is not None:
                 sock.close()
-
-        delay = 0
-        if received > 0:
-            delay = total_time / received
-        return (delay,max_delay,min_delay)
+        return report

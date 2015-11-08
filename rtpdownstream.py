@@ -16,6 +16,7 @@ class RtpDownStream:
 
     def run(self):
         reports = []
+        print('<---RtpDownStream---')
         for frame_count in self.conf['frame_per_packet']:
             for frame_bytes in self.conf['frame_bytes']:
                 packet_bytes = frame_count * frame_bytes + self.conf['rtp_head']
@@ -23,6 +24,7 @@ class RtpDownStream:
                 report = ('[FramePerPacket:%d,FrameBytes:%d] - Jitter:%f MaxJitter:%f Lost:%f' % (frame_count,frame_bytes,s.jitter,s.max_jitter,s.get_lost()))
                 print(report)
                 reports.append(report)
+        print('---RtpDownStream--->')
         return reports
 
     def runonce(self,frame_count,packet_bytes):

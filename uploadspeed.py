@@ -11,15 +11,16 @@ import json
 
 from speedreport import SpeedReport
 
-class DownloadSpeedWorker(threading.Thread):
-    """A download stream thread"""
+class UploadSpeedWorker(threading.Thread):
+    """A upload stream thread"""
 
     def __init__(self,addr,q,block):
         self.address = addr
         self.queue = q
         self.running = False
-        self.cmd = { 'block' : block }
-        threading.Thread.__init__(self);
+        self.block = block
+        self.packet = bytearray(block)
+        super(self.__class__,self).__init__();
 
     def recv_data(self,s):
         return len(s.recv(1024))
@@ -29,7 +30,6 @@ class DownloadSpeedWorker(threading.Thread):
         s.settimeout(5)
         try:
             s.connect(self.address)
-            s.sendall(json.dumps(self.cmd))
         except IOError:
             s.close()
             return
@@ -37,16 +37,8 @@ class DownloadSpeedWorker(threading.Thread):
         self.running = True
         try:
             while self.running:
-                datalen = 0
-                try:
-                    datalen = self.recv_data(s)
-                except socket.timeout:
-                    continue
-
-                if 0 == datalen:
-                    break
-                else:
-                    self.queue.put(datalen,True)
+                s.sendall(self.packet)
+                self.queue.put(self.block,True)
         except IOError:
             print('Socket IOError')
             return
@@ -54,37 +46,36 @@ class DownloadSpeedWorker(threading.Thread):
             s.close()
             self.running = False
 
-class DownloadSpeed:
+class UploadSpeed:
     def __init__(self,server,conf):
         self.address = (server,conf['port'])
         self.conf = conf
 
     def run(self):
         reports = []
-        print('<---DownloadSpeed---')
+        print('<---UploadSpeed---')
         for block in self.conf['block']:
             for threads in self.conf['threads']:
                 report = self.runonce(block,threads)
                 print(json.dumps(report.report()))
                 reports.append(report)
-        print('---DownloadSpeed--->')
+        print('---UploadSpeed--->')
 
         return reports
 
-    def runonce(self,block,threads):
+    def runonce(self,block,tcount):
         workers = []
         report = SpeedReport(block,threads)
         deadline = time.time() + self.conf['period']
         q = Queue.Queue(maxsize=0)
-        for i in range(0,threads):
-            w = DownloadSpeedWorker(self.address,q,block);
+        for i in range(0,tcount):
+            w = UploadSpeedWorker(self.address,q,block);
             w.start()
             workers.append(w)
 
         now = time.time()
         tv_last = now
         report.start()
-
         try:
             while True:
                 try:
@@ -104,6 +95,7 @@ class DownloadSpeed:
         finally:
             report.end()
 
+
         for w in workers:
             if w.running:
                 w.running = False
@@ -115,5 +107,6 @@ class DownloadSpeed:
         sys.stdout.write('\n')
         sys.stdout.flush()
         return report
+
 
 

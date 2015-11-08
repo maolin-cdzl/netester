@@ -9,9 +9,11 @@ import threading
 import socket
 import json
 
-from downloadspeed import DownloadSpeedCli
-from rtpdownload import RtpDownStream
+from downloadspeed import DownloadSpeed
+from uploadspeed import UploadSpeed
+from rtpdownstream import RtpDownStream
 from delay import UdpDelay,TcpDelay
+from mtu import Mtu
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 
@@ -25,20 +27,26 @@ def get_timestamp():
 def main():
     conf = json.load(file('%s/netester-cli.json' % current_path))
     #server = conf['server']
-    server = '127.0.0.1'
+    #server = '127.0.0.1'
+    server = '192.168.31.188'
 
-    app = DownloadSpeedCli(server,conf['DownloadSpeed'])
-    speed,block,threads = app.run()
-    print('Speed = %f, block = %d, threads = %d' % (speed,block,threads))
+    tester = Mtu(server,conf['MTU'])
+    tester.run()
 
-    app = RtpDownStream(server,conf['RtpDownStream'])
-    app.run()
+    tester = DownloadSpeed(server,conf['DownloadSpeed'])
+    tester.run()
 
-    app = UdpDelay(server,conf['UdpDelay'])
-    app.run()
+    tester = UploadSpeed(server,conf['UploadSpeed'])
+    tester.run()
 
-    app = TcpDelay(server,conf['TcpDelay'])
-    app.run()
+    tester = RtpDownStream(server,conf['RtpDownStream'])
+    tester.run()
+
+    tester = UdpDelay(server,conf['UdpDelay'])
+    tester.run()
+
+    tester = TcpDelay(server,conf['TcpDelay'])
+    tester.run()
 
 if __name__ == '__main__':
     main()

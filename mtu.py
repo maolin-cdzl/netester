@@ -20,9 +20,13 @@ class Mtu:
 
     def try_mtu(self,sock,mtu):
         packet = bytearray(mtu)
-        re = sock.sendto(packet,self.address)
-        if re != mtu:
-            print('MTU %d failed 1' % mtu)
+        try:
+            re = sock.sendto(packet,self.address)
+            if re != mtu:
+                print('MTU %d failed' % mtu)
+                return False
+        except socket.error:
+            print('MTU %d failed' % mtu)
             return False
 
         try:
@@ -43,6 +47,7 @@ class Mtu:
         min_v = self.conf['min']
         max_v = self.conf['max']
         mtu = min_v
+        result = 0
         try:
             sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM,socket.IPPROTO_UDP)
             sock.settimeout(5.0)
@@ -51,21 +56,20 @@ class Mtu:
 	    #setsockopt(s, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
 
             val = sock.getsockopt(socket.SOL_IP,IP_MTU_DISCOVER)
-            print('IP_MTU_DISCOVER: %d' % val)
-
             sock.setsockopt(socket.SOL_IP,IP_MTU_DISCOVER,IP_PMTUDISC_DO)
             
             while min_v < max_v - 1:
                 if self.try_mtu(sock,mtu):
                     min_v = mtu
+                    result = max(result,mtu)
                 else:
                     max_v = mtu
                 mtu = int(round( (min_v + max_v) / 2 ))
-                print('MTU min:%d max:%d' % (min_v,max_v))
                 time.sleep(0.2)
 
         finally:
             if sock is not None:
                 sock.close()
 
-        return mtu
+        print('PMTU: %d + 28 = %d' % (result,result + 28))
+        return result

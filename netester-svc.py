@@ -138,6 +138,18 @@ class TcpEchoService(Service):
         else:
             self.running = False
 
+class AddressReportService(Service):
+    def __init__(self,sock):
+        super(self.__class__,self).__init__(sock)
+
+    def select(self):
+        return (True,False,0)
+
+    def on_readable(self):
+        data,addr = self.sock.recvfrom(2048)
+        if len(data) > 0 :
+            packet = json.dumps({ 'ip' : addr[0], 'port' : addr[1]})
+            self.sock.sendto(packet,addr)
 
 class RtpDownstreamService(Service):
     class RtpDownstreamClient:
@@ -238,6 +250,7 @@ class App:
             self._svc_start(createUdpService((ip,59002),RtpDownstreamService))
             self._svc_start(createUdpService((ip,59003),UdpEchoService))
             self._svc_start(Listener((ip,59004),TcpEchoService))
+            self._svc_start(createUdpService((ip,59005),AddressReportService))
 
             while True:
                 time.sleep(10)

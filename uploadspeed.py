@@ -63,12 +63,12 @@ class UploadSpeed:
 
         return reports
 
-    def runonce(self,block,tcount):
+    def runonce(self,block,threads):
         workers = []
         report = SpeedReport(block,threads)
         deadline = time.time() + self.conf['period']
         q = Queue.Queue(maxsize=0)
-        for i in range(0,tcount):
+        for i in range(0,threads):
             w = UploadSpeedWorker(self.address,q,block);
             w.start()
             workers.append(w)

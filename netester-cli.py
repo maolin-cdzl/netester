@@ -14,6 +14,7 @@ from uploadspeed import UploadSpeed
 from rtpdownstream import RtpDownStream
 from delay import UdpDelay,TcpDelay
 from mtu import Mtu
+from nat import Nat
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 
@@ -26,11 +27,13 @@ def get_timestamp():
 
 def main():
     conf = json.load(file('%s/netester-cli.json' % current_path))
-    #server = conf['server']
-    #server = '127.0.0.1'
-    server = '192.168.31.188'
+    server = conf['server']
+    server = '127.0.0.1'
 
     tester = Mtu(server,conf['MTU'])
+    tester.run()
+
+    tester = Nat(server,conf['NAT'])
     tester.run()
 
     tester = DownloadSpeed(server,conf['DownloadSpeed'])
@@ -47,6 +50,7 @@ def main():
 
     tester = TcpDelay(server,conf['TcpDelay'])
     tester.run()
+
 
 if __name__ == '__main__':
     main()

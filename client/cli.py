@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#encoding: utf8 
+#encoding: utf8
 
 import os
 import sys
@@ -16,19 +16,25 @@ from delay import UdpDelay,TcpDelay
 from mtu import Mtu
 from nat import Nat
 
-current_path = os.path.abspath(os.path.dirname(__file__))
+def we_are_frozen():
+    return hasattr(sys,'frozen')
+def module_path():
+    if we_are_frozen():
+        return os.path.dirname(unicode(sys.executable,sys.getfilesystemencoding()))
+    else:
+        return os.path.dirname(unicode(__file__, sys.getfilesystemencoding( )))
+
+current_path = os.path.abspath(os.path.dirname(module_path()))
 
 
 def get_timestamp():
     return int(round(time.time() * 1000.0));
 
-
-
-
 def main():
     conf = json.load(file('%s/conf.json' % current_path))
     server = conf['server']
     #server = '127.0.0.1'
+    print('Test from server: %s' % server)
 
     tester = Mtu(server,conf['MTU'])
     tester.run()

@@ -71,7 +71,7 @@ def get_file_path(cur,fpath):
         return ''
 
 def save_reports(reports):
-    fname = time.strftime('%Y%m%d%H%M%S.json',time.gmtime())
+    fname = time.strftime('%Y%m%d%H%M%S.json',time.localtime())
     fpath = '%s/report/%s' % (current_path,fname)
     dir = os.path.dirname(fpath)
 
@@ -79,7 +79,7 @@ def save_reports(reports):
         os.mkdir(dir)
 
     content = json.dumps(reports,sort_keys=True,indent=2)
-    f = open(fname,'w')
+    f = open(fpath,'w')
     f.write(content)
     f.close()
 
@@ -87,7 +87,7 @@ def main():
     shortargs = 's:f:'
     longargs = ['Server=','File=','MTU','NAT','DownloadSpeed','UploadSpeed','RtpDownStream','UdpDelay','TcpDelay']
 
-    conf_file = '%s/conf.json' % current_path
+    conf_file = '%s/all.json' % current_path
     server = None
 
     opts,args = getopt.getopt(sys.argv[1:],shortargs,longargs)
@@ -131,7 +131,7 @@ def main():
             reports['TcpDelay'] = tester.run()
 
     if len(reports) == 0:
-        reports = run_all()
+        reports = run_all(server,conf)
 
     save_reports(reports)
 

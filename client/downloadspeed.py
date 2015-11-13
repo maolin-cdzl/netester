@@ -66,7 +66,7 @@ class DownloadSpeed:
             for threads in self.conf['threads']:
                 report = self.runonce(block,threads)
                 print('\t%s' % json.dumps(report.report()))
-                reports.append(report)
+                reports.append(report.report())
         print(']')
 
         return reports

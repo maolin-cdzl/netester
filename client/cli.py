@@ -8,6 +8,7 @@ import Queue
 import threading
 import socket
 import json
+import getopt
 
 from downloadspeed import DownloadSpeed
 from uploadspeed import UploadSpeed
@@ -32,74 +33,107 @@ def get_timestamp():
 
 def run_all(server,conf):
     print('Test from server: %s' % server)
+    reports = {}
 
     tester = Mtu(server,conf['MTU'])
-    tester.run()
+    reports['MTU'] = tester.run()
 
     tester = Nat(server,conf['NAT'])
-    tester.run()
+    reports['NAT'] = tester.run()
 
     tester = DownloadSpeed(server,conf['DownloadSpeed'])
-    tester.run()
+    reports['DownloadSpeed'] = tester.run()
 
     tester = UploadSpeed(server,conf['UploadSpeed'])
-    tester.run()
+    reports['UploadSpeed'] = tester.run()
 
     tester = RtpDownStream(server,conf['RtpDownStream'])
-    tester.run()
+    reports['RtpDownStream'] = tester.run()
 
     tester = UdpDelay(server,conf['UdpDelay'])
-    tester.run()
+    reports['UdpDelay'] = tester.run()
 
     tester = TcpDelay(server,conf['TcpDelay'])
-    tester.run()
+    reports['TcpDelay'] = tester.run()
+
+    return reports
+
+def get_file_path(cur,fpath):
+    if os.path.isfile(fpath):
+        return fpath
+    elif os.path.isfile('%s.json' %  fpath):
+        return '%s.json' % fpath
+    elif os.path.isfile('%s/%s' % (cur,fpath)):
+        return '%s/%s' % (cur,fpath)
+    elif os.path.isfile('%s/%s.json' % (cur,fpath)):
+        return '%s/%s.json' % (cur,fpath)
+    else:
+        return ''
+
+def save_reports(reports):
+    fname = time.strftime('%Y%m%d%H%M%S.json',time.gmtime())
+    fpath = '%s/report/%s' % (current_path,fname)
+    dir = os.path.dirname(fpath)
+
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+
+    content = json.dumps(reports,sort_keys=True,indent=2)
+    f = open(fname,'w')
+    f.write(content)
+    f.close()
 
 def main():
-    conf = json.load(file('%s/conf.json' % current_path))
-    server = conf['server']
-    #server = '127.0.0.1'
+    shortargs = 's:f:'
+    longargs = ['Server=','File=','MTU','NAT','DownloadSpeed','UploadSpeed','RtpDownStream','UdpDelay','TcpDelay']
 
-    shortargs = 's:'
-    longargs = ['server=','MTU','NAT','DownloadSpeed','UploadSpeed','RtpDownStream','UdpDelay','TcpDelay']
+    conf_file = '%s/conf.json' % current_path
+    server = None
 
     opts,args = getopt.getopt(sys.argv[1:],shortargs,longargs)
     for opt,val in opts:
         if opt == '-s' or opt == '--server':
             server = val
+        elif opt == '-f' or opt == '--file':
+            conf_file = get_file_path(current_path,val)
 
-    special = False
+    if len(conf_file) == 0:
+        print('Can NOT found config file!')
+        return
+
+    conf = json.load(file(conf_file))
+    if server is None:
+        server = conf['server']
+
+    print('Server: %s, File: %s' % (server,conf_file))
+    reports = {}
     for opt,val in opts:
         if opt == '--MTU':
-            special = True
             tester = Mtu(server,conf['MTU'])
-            tester.run()
+            reports['MTU'] = tester.run()
         elif opt == '--NAT':
-            special = True
             tester = Nat(server,conf['NAT'])
-            tester.run()
+            reports['NAT'] = tester.run()
         elif opt == '--DownloadSpeed':
-            special = True
             tester = DownloadSpeed(server,conf['DownloadSpeed'])
-            tester.run()
+            reports['DownloadSpeed'] = tester.run()
         elif opt == '--UploadSpeed':
-            special = True
             tester = UploadSpeed(server,conf['UploadSpeed'])
-            tester.run()
+            reports['UploadSpeed'] = tester.run()
         elif opt == '--RtpDownStream':
-            special = True
-            tester = UdpDelay(server,conf['UdpDelay'])
-            tester.run()
+            tester = RtpDownStream(server,conf['RtpDownStream'])
+            reports['RtpDownStream'] = tester.run()
         elif opt == '--UdpDelay':
-            special = True
             tester = UdpDelay(server,conf['UdpDelay'])
-            tester.run()
+            reports['UdpDelay'] = tester.run()
         elif opt == '--TcpDelay':
-            special = True
             tester = TcpDelay(server,conf['TcpDelay'])
-            tester.run()
+            reports['TcpDelay'] = tester.run()
 
-    if not special:
-        run_all()
+    if len(reports) == 0:
+        reports = run_all()
+
+    save_reports(reports)
 
 if __name__ == '__main__':
     main()

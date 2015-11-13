@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#encoding: utf8 
+#encoding: utf8
 
 import os
 import sys
@@ -61,13 +61,13 @@ class DownloadSpeed:
 
     def run(self):
         reports = []
-        print('<---DownloadSpeed---')
+        print('\"DownloadSpeed\" : [')
         for block in self.conf['block']:
             for threads in self.conf['threads']:
                 report = self.runonce(block,threads)
-                print(json.dumps(report.report()))
+                print('\t%s' % json.dumps(report.report()))
                 reports.append(report)
-        print('---DownloadSpeed--->')
+        print(']')
 
         return reports
 
@@ -115,5 +115,3 @@ class DownloadSpeed:
         sys.stdout.write('\n')
         sys.stdout.flush()
         return report
-
-

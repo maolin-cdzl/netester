@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#encoding: utf8 
+#encoding: utf8
 
 import os
 import sys
@@ -13,6 +13,13 @@ IP_PMTUDISC_WANT  =  1  # Use per route hints.
 IP_PMTUDISC_DO    =  2  # Always DF.
 IP_PMTUDISC_PROBE =  3  # Ignore dst pmtu.
 
+class MtuReport:
+    def __init__(self):
+        self.mtu = 0
+
+    def report(self):
+        return {'mtu' : self.mtu}
+
 class Mtu:
     def __init__(self,server,conf):
         self.address = (server,conf['port'])
@@ -23,23 +30,19 @@ class Mtu:
         try:
             re = sock.sendto(packet,self.address)
             if re != mtu:
-                print('MTU %d failed' % mtu)
                 return False
         except socket.error:
-            print('MTU %d failed' % mtu)
             return False
 
         try:
             ack,addr = sock.recvfrom(max(mtu,2048))
             if len(ack) == mtu:
-                print('MTU %d success' % mtu)
                 return True
             else:
-                return 
+                return
         except socket.timeout:
             pass
 
-        print('MTU %d failed 2' % mtu)
         return False
 
     def run(self):
@@ -47,7 +50,7 @@ class Mtu:
         min_v = self.conf['min']
         max_v = self.conf['max']
         mtu = min_v
-        result = 0
+        report = MtuReport()
         try:
             sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM,socket.IPPROTO_UDP)
             sock.settimeout(5.0)
@@ -57,11 +60,11 @@ class Mtu:
 
             val = sock.getsockopt(socket.SOL_IP,IP_MTU_DISCOVER)
             sock.setsockopt(socket.SOL_IP,IP_MTU_DISCOVER,IP_PMTUDISC_DO)
-            
+
             while min_v < max_v - 1:
                 if self.try_mtu(sock,mtu):
                     min_v = mtu
-                    result = max(result,mtu)
+                    report.mtu = max(report.mtu,mtu)
                 else:
                     max_v = mtu
                 mtu = int(round( (min_v + max_v) / 2 ))
@@ -71,5 +74,5 @@ class Mtu:
             if sock is not None:
                 sock.close()
 
-        print('PMTU: %d + 28 = %d' % (result,result + 28))
-        return result
+        print(json.dumps(report.report()))
+        return report

@@ -1,8 +1,11 @@
 #!/usr/bin/env python
-#encoding: utf8 
+#encoding: utf8
 
 class RtpStatus:
-    def __init__(self):
+    def __init__(self,frame_per_packet,frame_bytes,head_bytes):
+        self.frame_per_packet = frame_per_packet
+        self.frame_bytes = frame_bytes
+        self.head_bytes = head_bytes
         self.max_seq = 0
         self.base_seq = 0
         self.bad_seq = 0
@@ -11,13 +14,23 @@ class RtpStatus:
         self.transit = 0.0
         self.jitter = 0.0
         self.max_jitter = 0.0
+    def report(self):
+        return {
+            'frame_per_packet' : self.frame_per_packet,
+            'frame_bytes' : self.frame_bytes,
+            'head_bytes' : self.head_bytes,
+            'jitter' : self.jitter,
+            'max_jitter' : self.max_jitter,
+            'received' : self.received,
+            'lost' : self.get_lost()
+        }
 
     def get_lost(self):
         if self.received > 0:
             expected = self.max_seq - self.base_seq + 1
             return float(expected - self.received) / float(expected)
         else:
-            return 0.0
+            return 1.0
 
     def init_seq(self,seq):
         self.base_seq = seq
@@ -57,4 +70,3 @@ class RtpStatus:
                return False
         self.received += 1
         return True
-

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#encoding: utf8 
+#encoding: utf8
 
 import os
 import sys
@@ -28,12 +28,18 @@ class UdpDelayReport:
     def addLost(self):
         self.lost += 1
 
+    def get_lost(self):
+        if self.received > 0:
+            return float(self.lost) / float(self.received)
+        else:
+            return 1.0
+
     def report(self):
-        return { 
-                'bandwidth' : self.bandwidth, 
-                'packet' : self.packetbytes, 
+        return {
+                'bandwidth' : self.bandwidth,
+                'packet' : self.packetbytes,
                 'received' : self.received,
-                'lost' : self.lost,
+                'lost' : self.get_lost(),
                 'avg_delay' : round(self.avg_delay,4),
                 'max_delay' : round(self.max_delay,4),
                 'min_delay' : round(self.min_delay,4)
@@ -47,15 +53,15 @@ class UdpDelay:
     def run(self):
         reports = []
         overhead = self.conf['overhead']
-        print('<---UdpDelay---')
+        print('\"UdpDelay\": [')
         for frame_per_packet in self.conf['frame_per_packet']:
             for frame_bytes in self.conf['frame_bytes']:
                 for bandwidth in self.conf['bandwidth']:
                     packet_bytes = (frame_per_packet * frame_bytes) + overhead
                     report = self.runonce(bandwidth,packet_bytes)
-                    print( json.dumps(report.report()) )
+                    print('\t%s' % json.dumps(report.report()) )
                     reports.append(report)
-        print('---UdpDelay--->')
+        print(']')
 
         return reports
 
@@ -114,9 +120,9 @@ class TcpDelayReport:
         self.received += 1
 
     def report(self):
-        return { 
-                'bandwidth' : self.bandwidth, 
-                'packet' : self.packetbytes, 
+        return {
+                'bandwidth' : self.bandwidth,
+                'packet' : self.packetbytes,
                 'received' : self.received,
                 'avg_delay' : round(self.avg_delay,4),
                 'max_delay' : round(self.max_delay,4),
@@ -131,15 +137,15 @@ class TcpDelay:
     def run(self):
         reports = []
         overhead = self.conf['overhead']
-        print('<---TcpDelay---')
+        print('\"TcpDelay\": [')
         for frame_per_packet in self.conf['frame_per_packet']:
             for frame_bytes in self.conf['frame_bytes']:
                 for bandwidth in self.conf['bandwidth']:
                     packet_bytes = (frame_per_packet * frame_bytes) + overhead
                     report = self.runonce(bandwidth,packet_bytes)
-                    print( json.dumps(report.report()) )
+                    print('\t%s' % json.dumps(report.report()) )
                     reports.append(report)
-        print('---TcpDelay--->')
+        print(']')
         return reports
 
     def runonce(self,bandwidth,size):
